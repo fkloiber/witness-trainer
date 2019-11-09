@@ -13,6 +13,7 @@ HANDLE TryOpenProcess(const wchar_t * ProcessName);
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 void SetupConnectTimer(HWND);
 void KillConnectTimer(HWND);
+bool ConnectToGameProcess();
 
 int CALLBACK WinMain(
     HINSTANCE Instance,
@@ -73,15 +74,8 @@ LRESULT CALLBACK WndProc(HWND Window, UINT Message, WPARAM WParam, LPARAM LParam
             PostQuitMessage(0);
         } break;
         case WM_TIMER: {
-            if (WParam == g_ConnectTimer) {
-                HANDLE WitnessProcessHandle = TryOpenProcess(L"witness64_d3d11.exe");
-                if (!WitnessProcessHandle) {
-                    break;
-                }
-                HMODULE WitnessMainModule;
-                EnumProcessModules(WitnessProcessHandle, &WitnessMainModule, sizeof(HMODULE), nullptr);
-                g_ProcessHandle = WitnessProcessHandle;
-                g_MainModule = WitnessMainModule;
+            if (WParam == g_ConnectTimer && ConnectToGameProcess()) {
+                KillConnectTimer(Window);
             }
         } break;
         default: {
@@ -90,6 +84,22 @@ LRESULT CALLBACK WndProc(HWND Window, UINT Message, WPARAM WParam, LPARAM LParam
     }
 
     return 0;
+}
+
+void SetupConnectTimer(HWND Window) {
+    if (g_ConnectTimer == 0) {
+        g_ConnectTimer = SetTimer(Window, 0, 500, nullptr);
+        if (g_ConnectTimer) {
+            PostMessageW(Window, WM_TIMER, g_ConnectTimer, 0);
+        }
+    }
+}
+
+void KillConnectTimer(HWND Window) {
+    if (g_ConnectTimer != 0) {
+        KillTimer(Window, g_ConnectTimer);
+        g_ConnectTimer = 0;
+    }
 }
 
 HANDLE TryOpenProcess(const wchar_t * ProcessName) {
@@ -111,18 +121,15 @@ HANDLE TryOpenProcess(const wchar_t * ProcessName) {
     return nullptr;
 }
 
-void SetupConnectTimer(HWND Window) {
-    if (g_ConnectTimer == 0) {
-        g_ConnectTimer = SetTimer(Window, 0, 500, nullptr);
-        if (g_ConnectTimer) {
-            PostMessageW(Window, WM_TIMER, g_ConnectTimer, 0);
-        }
+bool ConnectToGameProcess() {
+    HANDLE WitnessProcessHandle = TryOpenProcess(L"witness64_d3d11.exe");
+    if (!WitnessProcessHandle) {
+        return false;
     }
-}
+    HMODULE WitnessMainModule;
+    EnumProcessModules(WitnessProcessHandle, &WitnessMainModule, sizeof(HMODULE), nullptr);
+    g_ProcessHandle = WitnessProcessHandle;
+    g_MainModule = WitnessMainModule;
 
-void KillConnectTimer(HWND Window) {
-    if (g_ConnectTimer != 0) {
-        KillTimer(Window, g_ConnectTimer);
-        g_ConnectTimer = 0;
-    }
+    return true;
 }
