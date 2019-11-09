@@ -1,7 +1,18 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include <TlHelp32.h>
+#include <Psapi.h>
 
+#include <cwchar>
+
+UINT_PTR g_ConnectTimer = 0;
+HANDLE g_ProcessHandle = nullptr;
+HMODULE g_MainModule = nullptr;
+
+HANDLE TryOpenProcess(const wchar_t * ProcessName);
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
+void SetupConnectTimer(HWND);
+void KillConnectTimer(HWND);
 
 int CALLBACK WinMain(
     HINSTANCE Instance,
@@ -39,6 +50,7 @@ int CALLBACK WinMain(
     );
 
     ShowWindow(Window, SW_SHOW);
+    SetupConnectTimer(Window);
 
     MSG Message;
     while (GetMessageW(&Message, nullptr, 0, 0)) {
@@ -52,7 +64,25 @@ int CALLBACK WinMain(
 LRESULT CALLBACK WndProc(HWND Window, UINT Message, WPARAM WParam, LPARAM LParam) {
     switch (Message) {
         case WM_DESTROY: {
+            KillConnectTimer(Window);
+            if (g_ProcessHandle) {
+                CloseHandle(g_ProcessHandle);
+                g_ProcessHandle = nullptr;
+                g_MainModule = nullptr;
+            }
             PostQuitMessage(0);
+        } break;
+        case WM_TIMER: {
+            if (WParam == g_ConnectTimer) {
+                HANDLE WitnessProcessHandle = TryOpenProcess(L"witness64_d3d11.exe");
+                if (!WitnessProcessHandle) {
+                    break;
+                }
+                HMODULE WitnessMainModule;
+                EnumProcessModules(WitnessProcessHandle, &WitnessMainModule, sizeof(HMODULE), nullptr);
+                g_ProcessHandle = WitnessProcessHandle;
+                g_MainModule = WitnessMainModule;
+            }
         } break;
         default: {
             return DefWindowProcW(Window, Message, WParam, LParam);
@@ -60,4 +90,39 @@ LRESULT CALLBACK WndProc(HWND Window, UINT Message, WPARAM WParam, LPARAM LParam
     }
 
     return 0;
+}
+
+HANDLE TryOpenProcess(const wchar_t * ProcessName) {
+    PROCESSENTRY32W Entry = {};
+    Entry.dwSize = sizeof(PROCESSENTRY32W);
+
+    HANDLE ProcessSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
+
+    if (Process32FirstW(ProcessSnapshot, &Entry) == TRUE) {
+        do {
+            if (wcsncmp(Entry.szExeFile, ProcessName, MAX_PATH) == 0) {
+                HANDLE Result = OpenProcess(PROCESS_ALL_ACCESS, FALSE, Entry.th32ProcessID);
+                CloseHandle(ProcessSnapshot);
+                return Result;
+            }
+        } while (Process32NextW(ProcessSnapshot, &Entry) == TRUE);
+    }
+    CloseHandle(ProcessSnapshot);
+    return nullptr;
+}
+
+void SetupConnectTimer(HWND Window) {
+    if (g_ConnectTimer == 0) {
+        g_ConnectTimer = SetTimer(Window, 0, 500, nullptr);
+        if (g_ConnectTimer) {
+            PostMessageW(Window, WM_TIMER, g_ConnectTimer, 0);
+        }
+    }
+}
+
+void KillConnectTimer(HWND Window) {
+    if (g_ConnectTimer != 0) {
+        KillTimer(Window, g_ConnectTimer);
+        g_ConnectTimer = 0;
+    }
 }
