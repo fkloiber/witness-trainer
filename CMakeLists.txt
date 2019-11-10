@@ -8,6 +8,8 @@ enable_testing()
 
 add_executable(witness-trainer WIN32)
 add_subdirectory(source)
+set_property(TARGET witness-trainer PROPERTY CXX_STANDARD 20)
+set_property(TARGET witness-trainer PROPERTY CXX_STANDARD_REQUIRED ON)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})

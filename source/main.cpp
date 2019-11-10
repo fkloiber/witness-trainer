@@ -5,6 +5,8 @@
 
 #include <cwchar>
 
+#include "aob.hpp"
+
 UINT_PTR g_ConnectTimer = 0;
 HANDLE g_ProcessHandle = nullptr;
 HMODULE g_MainModule = nullptr;
@@ -52,6 +54,8 @@ int CALLBACK WinMain(
 
     ShowWindow(Window, SW_SHOW);
     SetupConnectTimer(Window);
+
+    auto aob = AOB("AF 909F ?? b9");
 
     MSG Message;
     while (GetMessageW(&Message, nullptr, 0, 0)) {
