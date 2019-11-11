@@ -122,6 +122,19 @@ HANDLE TryOpenProcess(const wchar_t * ProcessName) {
 }
 
 const AOB DetourAOB("FF 05 ?? ?? ?? ?? E8 ?? ?? ?? ?? 84 C0");
+const AOB GetThePlayerCallAOB("E8 ?? ?? ?? ?? 48 85 C0 74 ?? F2 0F 10 40");
+const AOB GetCameraParametersFunctionAOB("48 85 C9 74 0C F3 0F 10 05 ?? ?? ?? ?? F3 0F 11 01 48 85 D2 74 0C F3 0F 10 05 ?? ?? ?? ?? F3 0F 11 02 C3");
+
+struct DetourParameters {
+    // input parameters
+    uintptr_t DetourAddress;
+    uintptr_t GetThePlayerFunction;
+    uintptr_t ThetaAddress, PhiAddress;
+    size_t DetourWholeInstructionBytes;
+    uint8_t XPositionOffset;
+
+    // output parameters
+} g_DetourParameters;
 bool ConnectToGameProcess() {
     HANDLE WitnessProcessHandle = TryOpenProcess(L"witness64_d3d11.exe");
     if (!WitnessProcessHandle) {
@@ -129,6 +142,20 @@ bool ConnectToGameProcess() {
     }
     g_WitnessMemory.Connect(WitnessProcessHandle);
 
-    uintptr_t DetourAddress = g_WitnessMemory.FindFirstOccurrenceInMainModule(DetourAOB);
+    g_DetourParameters = {};
+
+    g_DetourParameters.DetourAddress = g_WitnessMemory.FindFirstOccurrenceInMainModule(DetourAOB);
+
+    uintptr_t GetThePlayerCallAddress = g_WitnessMemory.FindFirstOccurrenceInMainModule(GetThePlayerCallAOB);
+    auto RelativeFunctionAddress = g_WitnessMemory.ReadValue<int32_t>(GetThePlayerCallAddress + 1);
+    g_DetourParameters.GetThePlayerFunction = GetThePlayerCallAddress + 5 + RelativeFunctionAddress;
+    g_DetourParameters.XPositionOffset = g_WitnessMemory.ReadValue<uint8_t>(GetThePlayerCallAddress + 14);
+
+    uintptr_t GetCameraParametersFunctionAddress = g_WitnessMemory.FindFirstOccurrenceInMainModule(GetCameraParametersFunctionAOB);
+    auto RelativeAddressTheta = g_WitnessMemory.ReadValue<int32_t>(GetCameraParametersFunctionAddress + 9);
+    auto RelativeAddressPhi = g_WitnessMemory.ReadValue<int32_t>(GetCameraParametersFunctionAddress + 26);
+    g_DetourParameters.ThetaAddress = GetCameraParametersFunctionAddress + 13 + RelativeAddressTheta;
+    g_DetourParameters.PhiAddress = GetCameraParametersFunctionAddress + 30 + RelativeAddressPhi;
+
     return true;
 }
