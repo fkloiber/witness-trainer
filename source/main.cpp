@@ -6,10 +6,10 @@
 #include <cwchar>
 
 #include "aob.hpp"
+#include "foreign_process_memory.hpp"
 
 UINT_PTR g_ConnectTimer = 0;
-HANDLE g_ProcessHandle = nullptr;
-HMODULE g_MainModule = nullptr;
+ForeignProcessMemory g_WitnessMemory;
 
 HANDLE TryOpenProcess(const wchar_t * ProcessName);
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
@@ -70,15 +70,11 @@ LRESULT CALLBACK WndProc(HWND Window, UINT Message, WPARAM WParam, LPARAM LParam
     switch (Message) {
         case WM_DESTROY: {
             KillConnectTimer(Window);
-            if (g_ProcessHandle) {
-                CloseHandle(g_ProcessHandle);
-                g_ProcessHandle = nullptr;
-                g_MainModule = nullptr;
-            }
+            g_WitnessMemory.Disconnect();
             PostQuitMessage(0);
         } break;
         case WM_TIMER: {
-            if (WParam == g_ConnectTimer && ConnectToGameProcess()) {
+            if (g_ConnectTimer && WParam == g_ConnectTimer && ConnectToGameProcess()) {
                 KillConnectTimer(Window);
             }
         } break;
@@ -125,15 +121,14 @@ HANDLE TryOpenProcess(const wchar_t * ProcessName) {
     return nullptr;
 }
 
+const AOB DetourAOB("FF 05 ?? ?? ?? ?? E8 ?? ?? ?? ?? 84 C0");
 bool ConnectToGameProcess() {
     HANDLE WitnessProcessHandle = TryOpenProcess(L"witness64_d3d11.exe");
     if (!WitnessProcessHandle) {
         return false;
     }
-    HMODULE WitnessMainModule;
-    EnumProcessModules(WitnessProcessHandle, &WitnessMainModule, sizeof(HMODULE), nullptr);
-    g_ProcessHandle = WitnessProcessHandle;
-    g_MainModule = WitnessMainModule;
+    g_WitnessMemory.Connect(WitnessProcessHandle);
 
+    uintptr_t DetourAddress = g_WitnessMemory.FindFirstOccurrenceInMainModule(DetourAOB);
     return true;
 }

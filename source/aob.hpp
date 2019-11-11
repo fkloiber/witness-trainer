@@ -7,6 +7,8 @@
 class AOB {
 public:
     AOB(std::string_view Pattern);
+    size_t Size() const;
+    uintptr_t FindIn(uint8_t * Data, size_t Length, uintptr_t DEBUG) const;
 private:
     struct PatternByte {
         bool ScanByte;

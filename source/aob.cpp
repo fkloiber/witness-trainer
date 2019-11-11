@@ -1,6 +1,7 @@
 #include "aob.hpp"
 
 #include <stdexcept>
+#include <limits>
 
 static bool IsHexadecimalDigit(char Char) {
     return ((Char >= '0' && Char <= '9') ||
@@ -67,4 +68,22 @@ AOB::AOB(std::string_view Pattern) {
             }
         }
     }
+}
+
+size_t AOB::Size() const {
+    return Data.size();
+}
+
+uintptr_t AOB::FindIn(uint8_t * Buffer, size_t Length, uintptr_t DEBUG) const {
+    for (size_t i = 0; i < Length - Size(); ++i) {
+        for (size_t j = 0; j < Size(); ++j) {
+            auto Byte = Data[j];
+            if (Byte.ScanByte && Byte.Value != Buffer[i + j]) {
+                goto continue_lbl;
+            }
+        }
+        return i;
+continue_lbl:;
+    }
+    return std::numeric_limits<uintptr_t>::max();
 }
