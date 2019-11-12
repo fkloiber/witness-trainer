@@ -9,6 +9,9 @@
 
 #include "aob.hpp"
 
+typedef LONG ( NTAPI *_NtSuspendProcess )( IN HANDLE ProcessHandle );
+typedef LONG ( NTAPI *_NtResumeProcess )( IN HANDLE ProcessHandle );
+
 class ForeignProcessMemory {
 public:
     ForeignProcessMemory();
@@ -17,6 +20,12 @@ public:
     void Disconnect();
 
     uintptr_t FindFirstOccurrenceInMainModule(const AOB&) const;
+
+    uintptr_t AllocateMemory(size_t Size, DWORD Flags) const;
+    void DeallocateMemory(uintptr_t Addr, size_t Size) const;
+
+    bool ReadBuffer(uint8_t * const Buffer, size_t Size, uintptr_t Addr) const;
+    bool WriteBuffer(uint8_t * Buffer, size_t Size, uintptr_t Addr) const;
     template<typename T>
     T ReadValue(uintptr_t Address) {
         static_assert(std::is_standard_layout_v<T> && std::is_trivial_v<T> && !std::is_array_v<T>, "");
@@ -28,9 +37,33 @@ public:
         }
         throw std::runtime_error("Could not read value");
     }
+    bool ReprotectMemory(uintptr_t Addr, size_t Size, DWORD Flags) const;
+
+    void Suspend() const {
+        if (!NtSuspendProcess) {
+            return;
+        }
+        NtSuspendProcess(ProcessHandle);
+    }
+
+    void Resume() const {
+        if (!NtResumeProcess) {
+            return;
+        }
+        NtResumeProcess(ProcessHandle);
+    }
+
+    void Flush(uintptr_t Addr, size_t Size) const {
+        if (!ProcessHandle) {
+            return;
+        }
+        FlushInstructionCache(ProcessHandle, (void*)Addr, Size);
+    }
 
 private:
     HANDLE ProcessHandle;
     HMODULE MainModule;
     uint8_t * Buffer;
+    _NtSuspendProcess NtSuspendProcess;
+    _NtResumeProcess NtResumeProcess;
 };

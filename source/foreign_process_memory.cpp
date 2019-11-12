@@ -10,7 +10,9 @@
 ForeignProcessMemory::ForeignProcessMemory() :
     ProcessHandle(nullptr),
     MainModule(nullptr),
-    Buffer((uint8_t *)VirtualAlloc(nullptr, 2*PAGE_SIZE, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE))
+    Buffer((uint8_t *)VirtualAlloc(nullptr, 2*PAGE_SIZE, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE)),
+    NtSuspendProcess((_NtSuspendProcess)GetProcAddress(GetModuleHandleA("ntdll"), "NtSuspendProcess")),
+    NtResumeProcess((_NtResumeProcess)GetProcAddress(GetModuleHandleA("ntdll"), "NtResumeProcess"))
 {}
 
 ForeignProcessMemory::~ForeignProcessMemory() {
@@ -51,4 +53,39 @@ uintptr_t ForeignProcessMemory::FindFirstOccurrenceInMainModule(const AOB & Patt
     }
     //ReadProcessMemory(ProcessHandle, MainModule, Buffer, PAGE_SIZE, nullptr);
     return 0;
+}
+
+uintptr_t ForeignProcessMemory::AllocateMemory(size_t Size, DWORD Flags) const {
+    if (!ProcessHandle) {
+        return 0;
+    }
+    return (uintptr_t)VirtualAllocEx(ProcessHandle, nullptr, Size, MEM_RESERVE | MEM_COMMIT, Flags);
+}
+
+void ForeignProcessMemory::DeallocateMemory(uintptr_t Addr, size_t Size) const {
+    if (!ProcessHandle || Addr == 0) {
+        return;
+    }
+    VirtualFreeEx(ProcessHandle, (void*)Addr, Size, MEM_DECOMMIT|MEM_RELEASE);
+}
+
+bool ForeignProcessMemory::ReadBuffer(uint8_t * const Buffer, size_t Size, uintptr_t Addr) const {
+    if (!ProcessHandle || Addr == 0) {
+        return false;
+    }
+    return ReadProcessMemory(ProcessHandle, (void*)Addr, Buffer, Size, nullptr) == TRUE;
+}
+
+bool ForeignProcessMemory::WriteBuffer(uint8_t * const Buffer, size_t Size, uintptr_t Addr) const {
+    if (!ProcessHandle || Addr == 0) {
+        return false;
+    }
+    return WriteProcessMemory(ProcessHandle, (void*)Addr, Buffer, Size, nullptr) == TRUE;
+}
+
+bool ForeignProcessMemory::ReprotectMemory(uintptr_t Addr, size_t Size, DWORD Flags) const {
+    if (!ProcessHandle || Addr == 0) {
+        return false;
+    }
+    return VirtualProtectEx(ProcessHandle, (void*)Addr, Size, Flags, nullptr) == TRUE;
 }
