@@ -22,30 +22,37 @@ mov [rdi + 0x1], ebx
 mov [rdi + 0x1], ecx
 
 mov rdi, [rip + Write]
+xor rax, rax
 cmp byte ptr [rdi + 0x1], 0
+mov [rdi + 0x1], al
 jz Exit
 cmp byte ptr [rdi + 0x1], 0
+mov [rdi + 0x1], al
 jz SkipX
 mov ebx, [rdi + 0x1]
 mov [rax + 0x1], ebx
 SkipX:
 cmp byte ptr [rdi + 0x1], 0
+mov [rdi + 0x1], al
 jz SkipY
 mov ebx, [rdi + 0x1]
 mov [rax + 0x1], ebx
 SkipY:
 cmp byte ptr [rdi + 0x1], 0
+mov [rdi + 0x1], al
 jz SkipZ
 mov ebx, [rdi + 0x1]
 mov [rax + 0x1], ebx
 SkipZ:
 cmp byte ptr [rdi + 0x1], 0
+mov [rdi + 0x1], al
 jz SkipTheta
 mov rbx, [rip + Theta]
 mov ebx, [rdi + 0x1]
 mov [rbx], ebx
 SkipTheta:
 cmp byte ptr [rdi + 0x1], 0
+mov [rdi + 0x1], al
 jz SkipPhi
 mov rcx, [rip + Phi]
 mov ebx, [rdi + 0x1]
