@@ -6,18 +6,21 @@
 #include <cstdint>
 #include <type_traits>
 #include <stdexcept>
+#include <memory>
 
-#include "aob.hpp"
+class AOB;
 
 typedef LONG ( NTAPI *_NtSuspendProcess )( IN HANDLE ProcessHandle );
 typedef LONG ( NTAPI *_NtResumeProcess )( IN HANDLE ProcessHandle );
 
 class ForeignProcessMemory {
+    struct Token {};
+
 public:
-    ForeignProcessMemory();
+    ForeignProcessMemory(Token, HANDLE, HMODULE, uint8_t * Buffer, _NtSuspendProcess, _NtResumeProcess);
     ~ForeignProcessMemory();
-    void Connect(HANDLE ProcessHandle);
-    void Disconnect();
+
+    static std::unique_ptr<ForeignProcessMemory> NewFromProcessName(const wchar_t * const);
 
     uintptr_t FindFirstOccurrenceInMainModule(const AOB&) const;
 

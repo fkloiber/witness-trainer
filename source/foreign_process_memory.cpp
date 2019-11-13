@@ -1,40 +1,101 @@
 #include "foreign_process_memory.hpp"
 
 #include <Psapi.h>
+#include <TlHelp32.h>
 
 #include <limits>
+#include <stdexcept>
+
+#include "aob.hpp"
+#include "defer.hpp"
 
 #undef max
 #define PAGE_SIZE 4096
 
-ForeignProcessMemory::ForeignProcessMemory() :
-    ProcessHandle(nullptr),
-    MainModule(nullptr),
-    Buffer((uint8_t *)VirtualAlloc(nullptr, 2*PAGE_SIZE, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE)),
-    NtSuspendProcess((_NtSuspendProcess)GetProcAddress(GetModuleHandleA("ntdll"), "NtSuspendProcess")),
-    NtResumeProcess((_NtResumeProcess)GetProcAddress(GetModuleHandleA("ntdll"), "NtResumeProcess"))
-{}
+HANDLE TryOpenProcess(const wchar_t * const ProcessName) {
+    PROCESSENTRY32W Entry = {};
+    Entry.dwSize = sizeof(PROCESSENTRY32W);
+
+    HANDLE ProcessSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
+
+    if (Process32FirstW(ProcessSnapshot, &Entry) == TRUE) {
+        do {
+            if (wcsncmp(Entry.szExeFile, ProcessName, MAX_PATH) == 0) {
+                HANDLE Result = OpenProcess(PROCESS_ALL_ACCESS, FALSE, Entry.th32ProcessID);
+                CloseHandle(ProcessSnapshot);
+                return Result;
+            }
+        } while (Process32NextW(ProcessSnapshot, &Entry) == TRUE);
+    }
+    CloseHandle(ProcessSnapshot);
+    return nullptr;
+}
+
+ForeignProcessMemory::ForeignProcessMemory(
+    ForeignProcessMemory::Token,
+    HANDLE ProcessHandle,
+    HMODULE MainModule,
+    uint8_t * Buffer,
+    _NtSuspendProcess NtSuspendProcess,
+    _NtResumeProcess NtResumeProcess
+) :
+    ProcessHandle(ProcessHandle),
+    MainModule(MainModule),
+    Buffer(Buffer),
+    NtSuspendProcess(NtSuspendProcess),
+    NtResumeProcess(NtResumeProcess)
+{ }
 
 ForeignProcessMemory::~ForeignProcessMemory() {
-    Disconnect();
-    if (Buffer) {
-        VirtualFree(Buffer, 2*PAGE_SIZE, MEM_RELEASE);
-        Buffer = nullptr;
-    }
-}
-
-void ForeignProcessMemory::Connect(HANDLE Handle) {
-    Disconnect();
-    ProcessHandle = Handle;
-    EnumProcessModules(ProcessHandle, &MainModule, sizeof(HMODULE), nullptr);
-}
-
-void ForeignProcessMemory::Disconnect() {
     if (ProcessHandle) {
         CloseHandle(ProcessHandle);
         ProcessHandle = nullptr;
         MainModule = nullptr;
     }
+    if (Buffer) {
+        VirtualFree(Buffer, 2*PAGE_SIZE, MEM_RELEASE);
+        Buffer = nullptr;
+    }
+    NtSuspendProcess = nullptr;
+    NtResumeProcess = nullptr;
+}
+
+std::unique_ptr<ForeignProcessMemory> ForeignProcessMemory::NewFromProcessName(const wchar_t * const Name) {
+    auto ProcessHandle = TryOpenProcess(Name);
+    if (!ProcessHandle) {
+        return nullptr;
+    }
+    auto HandleCloser = Defer([&](){ CloseHandle(ProcessHandle); });
+
+    HMODULE MainModule;
+    if (!EnumProcessModules(ProcessHandle, &MainModule, sizeof(MainModule), nullptr)) {
+        return nullptr;
+    }
+
+    auto Buffer = (uint8_t *) VirtualAlloc(nullptr, 2 * PAGE_SIZE, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+    if (!Buffer) {
+        return nullptr;
+    }
+    auto BufferDeallocator = Defer([&](){ VirtualFree(Buffer, 2 * PAGE_SIZE, MEM_RELEASE); });
+
+    static _NtSuspendProcess NtSuspendProcess = nullptr;
+    static _NtResumeProcess NtResumeProcess = nullptr;
+
+    if (!NtSuspendProcess) {
+        NtSuspendProcess = (_NtSuspendProcess)GetProcAddress(GetModuleHandleA("ntdll"), "NtSuspendProcess");
+    }
+    if (!NtResumeProcess) {
+        NtResumeProcess = (_NtResumeProcess)GetProcAddress(GetModuleHandleA("ntdll"), "NtResumeProcess");
+    }
+
+    if (!NtSuspendProcess || !NtResumeProcess) {
+        return nullptr;
+    }
+
+    BufferDeallocator.Kill();
+    HandleCloser.Kill();
+
+    return std::make_unique<ForeignProcessMemory>(Token {}, ProcessHandle, MainModule, Buffer, NtSuspendProcess, NtResumeProcess);
 }
 
 uintptr_t ForeignProcessMemory::FindFirstOccurrenceInMainModule(const AOB & Pattern) const {
@@ -51,7 +112,6 @@ uintptr_t ForeignProcessMemory::FindFirstOccurrenceInMainModule(const AOB & Patt
         LastReadOffset = Pattern.Size();
         memcpy(Buffer + PAGE_SIZE - LastReadOffset, Buffer + PAGE_SIZE + BytesRead - LastReadOffset, LastReadOffset);
     }
-    //ReadProcessMemory(ProcessHandle, MainModule, Buffer, PAGE_SIZE, nullptr);
     return 0;
 }
 
