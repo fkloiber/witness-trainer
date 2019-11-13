@@ -36,80 +36,80 @@ const AOB GetThePlayerCallAOB("E8 ?? ?? ?? ?? 48 85 C0 74 ?? F2 0F 10 40");
 const AOB GetCameraParametersFunctionAOB("48 85 C9 74 0C F3 0F 10 05 ?? ?? ?? ?? F3 0F 11 01 48 85 D2 74 0C F3 0F 10 05 ?? ?? ?? ?? F3 0F 11 02 C3");
 
 const static uint8_t DetourFragmentTemplate[] = { // 0xcc bytes are uninitialized and must be filled in
-    /* 000: */ 0x50,                                    // push   rax
-    /* 001: */ 0x53,                                    // push   rbx
-    /* 002: */ 0x51,                                    // push   rcx
-    /* 003: */ 0x52,                                    // push   rdx
-    /* 004: */ 0x57,                                    // push   rdi
-    /* 005: */ 0x48,0x8b,0x3d,0xb0,0x00,0x00,0x00,      // mov    rdi,QWORD PTR [rip+0xb0]        # bc <GetPlayer>
-    /* 00c: */ 0xff,0xd7,                               // call   rdi
-    /* 00e: */ 0x48,0x8b,0x3d,0xbf,0x00,0x00,0x00,      // mov    rdi,QWORD PTR [rip+0xbf]        # d4 <Read>
-    /* 015: */ 0x8b,0x58,0xcc,                          // mov    ebx,DWORD PTR [rax+0x??]
-    /* 018: */ 0x8b,0x48,0xcc,                          // mov    ecx,DWORD PTR [rax+0x??]
-    /* 01b: */ 0x8b,0x50,0xcc,                          // mov    edx,DWORD PTR [rax+0x??]
-    /* 01e: */ 0x89,0x5f,0xcc,                          // mov    DWORD PTR [rdi+0x??],ebx
-    /* 021: */ 0x89,0x4f,0xcc,                          // mov    DWORD PTR [rdi+0x??],ecx
-    /* 024: */ 0x89,0x57,0xcc,                          // mov    DWORD PTR [rdi+0x??],edx
-    /* 027: */ 0x48,0x8b,0x1d,0x96,0x00,0x00,0x00,      // mov    rbx,QWORD PTR [rip+0x96]        # c4 <Theta>
-    /* 02e: */ 0x48,0x8b,0x0d,0x97,0x00,0x00,0x00,      // mov    rcx,QWORD PTR [rip+0x97]        # cc <Phi>
-    /* 035: */ 0x8b,0x1b,                               // mov    ebx,DWORD PTR [rbx]
-    /* 037: */ 0x8b,0x09,                               // mov    ecx,DWORD PTR [rcx]
-    /* 039: */ 0x89,0x5f,0xcc,                          // mov    DWORD PTR [rdi+0x??],ebx
-    /* 03c: */ 0x89,0x4f,0xcc,                          // mov    DWORD PTR [rdi+0x??],ecx
-    /* 03f: */ 0x48,0x8b,0x3d,0x96,0x00,0x00,0x00,      // mov    rdi,QWORD PTR [rip+0x96]        # dc <Write>
-    /* 046: */ 0x48,0x31,0xc0,                          // xor    rax,rax
-    /* 049: */ 0x80,0x7f,0xcc,0x00,                     // cmp    BYTE PTR [rdi+0x??],0x0
-    /* 04d: */ 0x88,0x47,0xcc,                          // mov    BYTE PTR [rdi+0x??],al
-    /* 050: */ 0x74,0x57,                               // je     a9 <Exit>
-    /* 052: */ 0x80,0x7f,0xcc,0x00,                     // cmp    BYTE PTR [rdi+0x??],0x0
-    /* 056: */ 0x88,0x47,0xcc,                          // mov    BYTE PTR [rdi+0x??],al
-    /* 059: */ 0x74,0x06,                               // je     61 <SkipX>
-    /* 05b: */ 0x8b,0x5f,0xcc,                          // mov    ebx,DWORD PTR [rdi+0x??]
-    /* 05e: */ 0x89,0x58,0xcc,                          // mov    DWORD PTR [rax+0x??],ebx
-    // 0000000000000061 <SkipX>:
-    /* 061: */ 0x80,0x7f,0xcc,0x00,                     // cmp    BYTE PTR [rdi+0x??],0x0
-    /* 065: */ 0x88,0x47,0xcc,                          // mov    BYTE PTR [rdi+0x??],al
-    /* 068: */ 0x74,0x06,                               // je     70 <SkipY>
-    /* 06a: */ 0x8b,0x5f,0xcc,                          // mov    ebx,DWORD PTR [rdi+0x??]
-    /* 06d: */ 0x89,0x58,0xcc,                          // mov    DWORD PTR [rax+0x??],ebx
-    // 0000000000000070 <SkipY>:
-    /* 070: */ 0x80,0x7f,0xcc,0x00,                     // cmp    BYTE PTR [rdi+0x??],0x0
-    /* 074: */ 0x88,0x47,0xcc,                          // mov    BYTE PTR [rdi+0x??],al
-    /* 077: */ 0x74,0x06,                               // je     7f <SkipZ>
-    /* 079: */ 0x8b,0x5f,0xcc,                          // mov    ebx,DWORD PTR [rdi+0x??]
-    /* 07c: */ 0x89,0x58,0xcc,                          // mov    DWORD PTR [rax+0x??],ebx
-    // 000000000000007f <SkipZ>:
-    /* 07f: */ 0x80,0x7f,0xcc,0x00,                     // cmp    BYTE PTR [rdi+0x??],0x0
-    /* 083: */ 0x88,0x47,0xcc,                          // mov    BYTE PTR [rdi+0x??],al
-    /* 086: */ 0x74,0x0c,                               // je     94 <SkipTheta>
-    /* 088: */ 0x48,0x8b,0x1d,0x35,0x00,0x00,0x00,      // mov    rbx,QWORD PTR [rip+0x35]        # c4 <Theta>
-    /* 08f: */ 0x8b,0x5f,0xcc,                          // mov    ebx,DWORD PTR [rdi+0x??]
-    /* 092: */ 0x89,0x1b,                               // mov    DWORD PTR [rbx],ebx
-    // 0000000000000094 <SkipTheta>:
-    /* 094: */ 0x80,0x7f,0xcc,0x00,                     // cmp    BYTE PTR [rdi+0x??],0x0
-    /* 098: */ 0x88,0x47,0xcc,                          // mov    BYTE PTR [rdi+0x??],al
-    /* 09b: */ 0x74,0x0c,                               // je     a9 <Exit>
-    /* 09d: */ 0x48,0x8b,0x0d,0x28,0x00,0x00,0x00,      // mov    rcx,QWORD PTR [rip+0x28]        # cc <Phi>
-    /* 0a4: */ 0x8b,0x5f,0xcc,                          // mov    ebx,DWORD PTR [rdi+0x??]
-    /* 0a7: */ 0x89,0x19,                               // mov    DWORD PTR [rcx],ebx
-    // 00000000000000a9 <Exit>:
-    /* 0a9: */ 0x5f,                                    // pop    rdi
-    /* 0aa: */ 0x5a,                                    // pop    rdx
-    /* 0ab: */ 0x59,                                    // pop    rcx
-    /* 0ac: */ 0x5b,                                    // pop    rbx
-    /* 0ad: */ 0x58,                                    // pop    rax
-    /* 0ae: */ 0xff,0x25,0x00,0x00,0x00,0x00,           // jmp    QWORD PTR [rip+0x0]        # b4 <Exit+0xb>
-    /* 0b4: */ 0xcc,0xcc,0xcc,0xcc,0xcc,0xcc,0xcc,0xcc, // .quad 0xcccccccccccccccc
-    // 00000000000000bc <GetPlayer>:
-    /* 0bc: */ 0xcc,0xcc,0xcc,0xcc,0xcc,0xcc,0xcc,0xcc, // .quad 0xcccccccccccccccc
-    // 00000000000000c4 <Theta>:
-    /* 0c4: */ 0xcc,0xcc,0xcc,0xcc,0xcc,0xcc,0xcc,0xcc, // .quad 0xcccccccccccccccc
-    // 00000000000000cc <Phi>:
-    /* 0cc: */ 0xcc,0xcc,0xcc,0xcc,0xcc,0xcc,0xcc,0xcc, // .quad 0xcccccccccccccccc
-    // 00000000000000d4 <Read>:
-    /* 0d4: */ 0xcc,0xcc,0xcc,0xcc,0xcc,0xcc,0xcc,0xcc, // .quad 0xcccccccccccccccc
-    // 00000000000000dc <Write>:
-    /* 0dc: */ 0xcc,0xcc,0xcc,0xcc,0xcc,0xcc,0xcc,0xcc, // .quad 0xcccccccccccccccc
+    0x50,                                    // push   rax
+    0x53,                                    // push   rbx
+    0x51,                                    // push   rcx
+    0x52,                                    // push   rdx
+    0x57,                                    // push   rdi
+    0x48,0x8b,0x3d,0xb0,0x00,0x00,0x00,      // mov    rdi,QWORD PTR [rip+0xb0]        # <GetPlayer>
+    0xff,0xd7,                               // call   rdi
+    0x48,0x8b,0x3d,0xbf,0x00,0x00,0x00,      // mov    rdi,QWORD PTR [rip+0xbf]        # <Read>
+    0x8b,0x58,0xcc,                          // mov    ebx,DWORD PTR [rax+0x??]
+    0x8b,0x48,0xcc,                          // mov    ecx,DWORD PTR [rax+0x??]
+    0x8b,0x50,0xcc,                          // mov    edx,DWORD PTR [rax+0x??]
+    0x89,0x5f,0xcc,                          // mov    DWORD PTR [rdi+0x??],ebx
+    0x89,0x4f,0xcc,                          // mov    DWORD PTR [rdi+0x??],ecx
+    0x89,0x57,0xcc,                          // mov    DWORD PTR [rdi+0x??],edx
+    0x48,0x8b,0x1d,0x96,0x00,0x00,0x00,      // mov    rbx,QWORD PTR [rip+0x96]        # <Theta>
+    0x48,0x8b,0x0d,0x97,0x00,0x00,0x00,      // mov    rcx,QWORD PTR [rip+0x97]        # <Phi>
+    0x8b,0x1b,                               // mov    ebx,DWORD PTR [rbx]
+    0x8b,0x09,                               // mov    ecx,DWORD PTR [rcx]
+    0x89,0x5f,0xcc,                          // mov    DWORD PTR [rdi+0x??],ebx
+    0x89,0x4f,0xcc,                          // mov    DWORD PTR [rdi+0x??],ecx
+    0x48,0x8b,0x3d,0x96,0x00,0x00,0x00,      // mov    rdi,QWORD PTR [rip+0x96]        # <Write>
+    0x48,0x31,0xc0,                          // xor    rax,rax
+    0x80,0x7f,0xcc,0x00,                     // cmp    BYTE PTR [rdi+0x??],0x0
+    0x88,0x47,0xcc,                          // mov    BYTE PTR [rdi+0x??],al
+    0x74,0x57,                               // je     <Exit>
+    0x80,0x7f,0xcc,0x00,                     // cmp    BYTE PTR [rdi+0x??],0x0
+    0x88,0x47,0xcc,                          // mov    BYTE PTR [rdi+0x??],al
+    0x74,0x06,                               // je     <SkipX>
+    0x8b,0x5f,0xcc,                          // mov    ebx,DWORD PTR [rdi+0x??]
+    0x89,0x58,0xcc,                          // mov    DWORD PTR [rax+0x??],ebx
+    // <SkipX>:
+    0x80,0x7f,0xcc,0x00,                     // cmp    BYTE PTR [rdi+0x??],0x0
+    0x88,0x47,0xcc,                          // mov    BYTE PTR [rdi+0x??],al
+    0x74,0x06,                               // je     <SkipY>
+    0x8b,0x5f,0xcc,                          // mov    ebx,DWORD PTR [rdi+0x??]
+    0x89,0x58,0xcc,                          // mov    DWORD PTR [rax+0x??],ebx
+    // <SkipY>:
+    0x80,0x7f,0xcc,0x00,                     // cmp    BYTE PTR [rdi+0x??],0x0
+    0x88,0x47,0xcc,                          // mov    BYTE PTR [rdi+0x??],al
+    0x74,0x06,                               // je     <SkipZ>
+    0x8b,0x5f,0xcc,                          // mov    ebx,DWORD PTR [rdi+0x??]
+    0x89,0x58,0xcc,                          // mov    DWORD PTR [rax+0x??],ebx
+    // <SkipZ>:
+    0x80,0x7f,0xcc,0x00,                     // cmp    BYTE PTR [rdi+0x??],0x0
+    0x88,0x47,0xcc,                          // mov    BYTE PTR [rdi+0x??],al
+    0x74,0x0c,                               // je     <SkipTheta>
+    0x48,0x8b,0x1d,0x35,0x00,0x00,0x00,      // mov    rbx,QWORD PTR [rip+0x35]        # <Theta>
+    0x8b,0x5f,0xcc,                          // mov    ebx,DWORD PTR [rdi+0x??]
+    0x89,0x1b,                               // mov    DWORD PTR [rbx],ebx
+    // <SkipTheta>:
+    0x80,0x7f,0xcc,0x00,                     // cmp    BYTE PTR [rdi+0x??],0x0
+    0x88,0x47,0xcc,                          // mov    BYTE PTR [rdi+0x??],al
+    0x74,0x0c,                               // je     <Exit>
+    0x48,0x8b,0x0d,0x28,0x00,0x00,0x00,      // mov    rcx,QWORD PTR [rip+0x28]        # <Phi>
+    0x8b,0x5f,0xcc,                          // mov    ebx,DWORD PTR [rdi+0x??]
+    0x89,0x19,                               // mov    DWORD PTR [rcx],ebx
+    // <Exit>:
+    0x5f,                                    // pop    rdi
+    0x5a,                                    // pop    rdx
+    0x59,                                    // pop    rcx
+    0x5b,                                    // pop    rbx
+    0x58,                                    // pop    rax
+    0xff,0x25,0x00,0x00,0x00,0x00,           // jmp    QWORD PTR [rip+0x0]        # <Exit+0xb>
+    0xcc,0xcc,0xcc,0xcc,0xcc,0xcc,0xcc,0xcc, // .quad 0xcccccccccccccccc
+    // <GetPlayer>:
+    0xcc,0xcc,0xcc,0xcc,0xcc,0xcc,0xcc,0xcc, // .quad 0xcccccccccccccccc
+    // <Theta>:
+    0xcc,0xcc,0xcc,0xcc,0xcc,0xcc,0xcc,0xcc, // .quad 0xcccccccccccccccc
+    // <Phi>:
+    0xcc,0xcc,0xcc,0xcc,0xcc,0xcc,0xcc,0xcc, // .quad 0xcccccccccccccccc
+    // <Read>:
+    0xcc,0xcc,0xcc,0xcc,0xcc,0xcc,0xcc,0xcc, // .quad 0xcccccccccccccccc
+    // <Write>:
+    0xcc,0xcc,0xcc,0xcc,0xcc,0xcc,0xcc,0xcc, // .quad 0xcccccccccccccccc
 };
 
 std::unique_ptr<GameInterface> GameInterface::New() {
