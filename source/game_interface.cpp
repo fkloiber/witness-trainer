@@ -192,12 +192,15 @@ std::unique_ptr<GameInterface> GameInterface::New() {
   #undef OFFSETOF
 
     // Copy the detour code over to the game process
-    auto DetourBuffer = Memory->AllocateMemory(DetourFragment.size(), PAGE_EXECUTE_READWRITE);
+    auto DetourBuffer = Memory->AllocateMemory(DetourFragment.size(), PAGE_READWRITE);
     if (!DetourBuffer) {
         return nullptr;
     }
     auto DetourBufferDeallocator = Defer([&](){ Memory->DeallocateMemory(DetourBuffer); });
-    if (!Memory->WriteBuffer(DetourFragment.data(), DetourFragment.size(), DetourBuffer)) {
+    if (
+        !Memory->WriteBuffer(DetourFragment.data(), DetourFragment.size(), DetourBuffer)
+     || !Memory->ReprotectMemory(DetourBuffer, DetourFragment.size(), PAGE_EXECUTE_READ)
+    ) {
         return nullptr;
     }
 
