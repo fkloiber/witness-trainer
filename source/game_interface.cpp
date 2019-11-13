@@ -17,29 +17,24 @@ GameInterface::GameInterface(
     DetourAddress(DetourAddress),
     DetourBuffer(DetourBuffer),
     ReadAddress(ReadAddress),
-    WriteAddress(WriteAddress)
+    WriteAddress(WriteAddress),
+    ReadBuffer({}),
+    WriteBuffer({})
 { }
+
+bool GameInterface::DoRead() {
+    return Memory->ReadBuffer((uint8_t*)&ReadBuffer, sizeof(ReadBuffer), ReadAddress);
+}
+
+bool GameInterface::DoWrite() {
+    WriteBuffer.WriteAny = true;
+    return Memory->WriteBuffer((uint8_t*)&WriteBuffer, sizeof(WriteBuffer), WriteAddress);
+}
 
 const AOB DetourAOB("66 0F 6E C1 F3 0F E6 D2 F3 0F E6 C0 F2 41 0F 59 D0");
 const AOB GetThePlayerCallAOB("E8 ?? ?? ?? ?? 48 85 C0 74 ?? F2 0F 10 40");
 const AOB GetCameraParametersFunctionAOB("48 85 C9 74 0C F3 0F 10 05 ?? ?? ?? ?? F3 0F 11 01 48 85 D2 74 0C F3 0F 10 05 ?? ?? ?? ?? F3 0F 11 02 C3");
 
-struct ReadData {
-    float X, Y, Z, Theta, Phi;
-};
-struct WriteData {
-    float X;
-    float Y;
-    float Z;
-    float Theta;
-    float Phi;
-    bool WriteAny;
-    bool WriteX;
-    bool WriteY;
-    bool WriteZ;
-    bool WriteTheta;
-    bool WritePhi;
-};
 const static uint8_t DetourFragmentTemplate[] = { // 0xcc bytes are uninitialized and must be filled in
     /* 000: */ 0x50,                                    // push   rax
     /* 001: */ 0x53,                                    // push   rbx
