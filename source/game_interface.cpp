@@ -136,7 +136,7 @@ std::unique_ptr<GameInterface> GameInterface::New() {
     auto PhiAddress = GetCameraParametersAddress + 0x1E + RelativeAddressPhi;
 
     auto ReadWriteBuffers = Memory->AllocateMemory(sizeof(ReadData) + sizeof(WriteData), PAGE_READWRITE);
-    auto ReadWriteBuffersDeallocator = Defer([&](){ Memory->DeallocateMemory(ReadWriteBuffers, sizeof(ReadData) + sizeof(WriteData)); });
+    auto ReadWriteBuffersDeallocator = Defer([&](){ Memory->DeallocateMemory(ReadWriteBuffers); });
     auto ReadAddress = ReadWriteBuffers;
     auto WriteAddress = ReadWriteBuffers + sizeof(ReadData);
 
@@ -196,7 +196,7 @@ std::unique_ptr<GameInterface> GameInterface::New() {
     if (!DetourBuffer) {
         return nullptr;
     }
-    auto DetourBufferDeallocator = Defer([&](){ Memory->DeallocateMemory(DetourBuffer, DetourFragment.size()); });
+    auto DetourBufferDeallocator = Defer([&](){ Memory->DeallocateMemory(DetourBuffer); });
     if (!Memory->WriteBuffer(DetourFragment.data(), DetourFragment.size(), DetourBuffer)) {
         return nullptr;
     }
@@ -238,7 +238,7 @@ std::unique_ptr<GameInterface> GameInterface::New() {
 GameInterface::~GameInterface() {
     // Unpatch the detour site
     std::vector<uint8_t> Buffer(DetourAOB.Size(), 0x90);
-    Memory->ReadBuffer(Buffer.data(), Buffer.size(), DetourAddress);
+    Memory->ReadBuffer(Buffer.data(), Buffer.size(), DetourBuffer);
 
     Memory->Suspend();
     Memory->ReprotectMemory(DetourAddress, DetourAOB.Size(), PAGE_READWRITE);
@@ -248,6 +248,6 @@ GameInterface::~GameInterface() {
     Memory->Resume();
 
     // Deallocate our buffers
-    Memory->DeallocateMemory(DetourBuffer, sizeof(DetourFragmentTemplate) + DetourAOB.Size());
-    Memory->DeallocateMemory(ReadAddress, sizeof(ReadData) + sizeof(WriteData));
+    Memory->DeallocateMemory(DetourBuffer);
+    Memory->DeallocateMemory(ReadAddress);
 }

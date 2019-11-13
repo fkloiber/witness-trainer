@@ -25,7 +25,7 @@ public:
     uintptr_t FindFirstOccurrenceInMainModule(const AOB&) const;
 
     uintptr_t AllocateMemory(size_t Size, DWORD Flags) const;
-    void DeallocateMemory(uintptr_t Addr, size_t Size) const;
+    void DeallocateMemory(uintptr_t Addr) const;
 
     bool ReadBuffer(uint8_t * const Buffer, size_t Size, uintptr_t Addr) const;
     bool WriteBuffer(uint8_t * Buffer, size_t Size, uintptr_t Addr) const;

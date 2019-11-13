@@ -9,7 +9,8 @@
 
 #include "game_interface.hpp"
 
-UINT_PTR g_ConnectTimer = 0;
+#define CONNECT_TIMER_ID 5
+
 std::unique_ptr<GameInterface> g_GameInterface = nullptr;
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
@@ -68,11 +69,11 @@ LRESULT CALLBACK WndProc(HWND Window, UINT Message, WPARAM WParam, LPARAM LParam
     switch (Message) {
         case WM_DESTROY: {
             KillConnectTimer(Window);
-            //g_GameInterface.reset();
+            g_GameInterface.reset();
             PostQuitMessage(0);
         } break;
         case WM_TIMER: {
-            if (g_ConnectTimer && WParam == g_ConnectTimer && ConnectToGameProcess()) {
+            if (WParam == CONNECT_TIMER_ID && ConnectToGameProcess()) {
                 KillConnectTimer(Window);
             }
         } break;
@@ -85,19 +86,14 @@ LRESULT CALLBACK WndProc(HWND Window, UINT Message, WPARAM WParam, LPARAM LParam
 }
 
 void SetupConnectTimer(HWND Window) {
-    if (g_ConnectTimer == 0) {
-        g_ConnectTimer = SetTimer(Window, 0, 500, nullptr);
-        if (g_ConnectTimer) {
-            PostMessageW(Window, WM_TIMER, g_ConnectTimer, 0);
-        }
+    bool Success = SetTimer(Window, CONNECT_TIMER_ID, 500, nullptr);
+    if (Success) {
+        PostMessageW(Window, WM_TIMER, CONNECT_TIMER_ID, 0);
     }
 }
 
 void KillConnectTimer(HWND Window) {
-    if (g_ConnectTimer != 0) {
-        KillTimer(Window, g_ConnectTimer);
-        g_ConnectTimer = 0;
-    }
+    KillTimer(Window, CONNECT_TIMER_ID);
 }
 
 bool ConnectToGameProcess() {

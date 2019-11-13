@@ -67,8 +67,9 @@ std::unique_ptr<ForeignProcessMemory> ForeignProcessMemory::NewFromProcessName(c
     }
     auto HandleCloser = Defer([&](){ CloseHandle(ProcessHandle); });
 
-    HMODULE MainModule;
-    if (!EnumProcessModules(ProcessHandle, &MainModule, sizeof(MainModule), nullptr)) {
+    HMODULE MainModule = nullptr;
+    DWORD Dummy;
+    if (!EnumProcessModules(ProcessHandle, &MainModule, sizeof(MainModule), &Dummy)) {
         return nullptr;
     }
 
@@ -122,11 +123,11 @@ uintptr_t ForeignProcessMemory::AllocateMemory(size_t Size, DWORD Flags) const {
     return (uintptr_t)VirtualAllocEx(ProcessHandle, nullptr, Size, MEM_RESERVE | MEM_COMMIT, Flags);
 }
 
-void ForeignProcessMemory::DeallocateMemory(uintptr_t Addr, size_t Size) const {
+void ForeignProcessMemory::DeallocateMemory(uintptr_t Addr) const {
     if (!ProcessHandle || Addr == 0) {
         return;
     }
-    VirtualFreeEx(ProcessHandle, (void*)Addr, Size, MEM_DECOMMIT|MEM_RELEASE);
+    VirtualFreeEx(ProcessHandle, (void*)Addr, 0, MEM_RELEASE);
 }
 
 bool ForeignProcessMemory::ReadBuffer(uint8_t * const Buffer, size_t Size, uintptr_t Addr) const {
@@ -147,5 +148,6 @@ bool ForeignProcessMemory::ReprotectMemory(uintptr_t Addr, size_t Size, DWORD Fl
     if (!ProcessHandle || Addr == 0) {
         return false;
     }
-    return VirtualProtectEx(ProcessHandle, (void*)Addr, Size, Flags, nullptr) == TRUE;
+    DWORD Dummy;
+    return VirtualProtectEx(ProcessHandle, (void*)Addr, Size, Flags, &Dummy) == TRUE;
 }
