@@ -18,6 +18,7 @@ std::unique_ptr<GameInterface> g_GameInterface = nullptr;
 HINSTANCE g_Instance = nullptr;
 HWND g_Window = nullptr;
 HFONT g_UiFont = nullptr;
+HFONT g_UiMonoFont = nullptr;
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 void SetupConnectTimer(HWND);
@@ -27,6 +28,9 @@ bool ConnectToGameProcess();
 struct UiState {
     Label XLbl, YLbl, ZLbl;
 } g_UiState;
+
+extern "C" const char SegoeUiMono[];
+extern "C" const size_t SegoeUiMono_len;
 
 int CALLBACK WinMain(
     HINSTANCE Instance,
@@ -46,6 +50,8 @@ int CALLBACK WinMain(
     WindowClass.hbrBackground = (HBRUSH)(COLOR_WINDOW+1);
     WindowClass.lpszMenuName = nullptr;
     WindowClass.lpszClassName = ClassName;
+
+    AddFontMemResourceEx((void*)SegoeUiMono, (DWORD)SegoeUiMono_len, 0, nullptr);
 
     if (!RegisterClassW(&WindowClass)) {
         MessageBoxW(nullptr, L"Window Creation Failed", L"This really shouldn't happen...", 0);
@@ -71,12 +77,19 @@ int CALLBACK WinMain(
         CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
         DEFAULT_PITCH | FF_DONTCARE, "Segoe UI"
     );
+    g_UiMonoFont = CreateFontA(
+        -16, 0, 0, 0,
+        FW_NORMAL, FALSE, FALSE, FALSE,
+        ANSI_CHARSET, OUT_DEFAULT_PRECIS,
+        CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
+        FIXED_PITCH | FF_DONTCARE, "SegoeUIMonoW01-Regular"
+    );
 
     Label::New(10, 10, 60, 20, "Position: ");
 
-    g_UiState.XLbl = Label::New(75, 10, 200, 20, "X: ??");
-    g_UiState.YLbl = Label::New(75, 30, 200, 20, "Y: ??");
-    g_UiState.ZLbl = Label::New(75, 50, 200, 20, "Z: ??");
+    g_UiState.XLbl = Label::New(75, 10, 200, 20, "X: ??", &g_UiMonoFont);
+    g_UiState.YLbl = Label::New(75, 30, 200, 20, "Y: ??", &g_UiMonoFont);
+    g_UiState.ZLbl = Label::New(75, 50, 200, 20, "Z: ??", &g_UiMonoFont);
 
     ShowWindow(g_Window, SW_SHOW);
     SetupConnectTimer(g_Window);

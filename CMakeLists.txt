@@ -16,7 +16,15 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(fmt)
 
-add_executable(witness-trainer WIN32)
+add_executable(embedfile embedfile.c)
+
+add_custom_command(
+    OUTPUT SegoeUiMono.c
+    COMMAND embedfile SegoeUiMono ${PROJECT_SOURCE_DIR}/source/resources/SegoeUiMono.ttf
+    DEPENDS source/resources/SegoeUiMono.ttf
+)
+
+add_executable(witness-trainer WIN32 SegoeUiMono.c)
 add_subdirectory(source)
 set_property(TARGET witness-trainer PROPERTY CXX_STANDARD 20)
 set_property(TARGET witness-trainer PROPERTY CXX_STANDARD_REQUIRED ON)
