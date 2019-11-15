@@ -35,6 +35,9 @@ public:
     void WritePhi(float Val)   { WriteBuffer.Phi   = Val; WriteBuffer.WritePhi   = true; }
     bool DoWrite();
 
+    bool ProcessRunning() const;
+    DWORD ProcessId() const;
+
 private:
     std::unique_ptr<ForeignProcessMemory> Memory;
     uintptr_t DetourAddress;

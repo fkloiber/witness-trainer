@@ -63,6 +63,14 @@ public:
         FlushInstructionCache(ProcessHandle, (void*)Addr, Size);
     }
 
+    bool ProcessRunning() const {
+        return WaitForSingleObject(ProcessHandle, 0) == WAIT_TIMEOUT;
+    }
+
+    DWORD ProcessId() const {
+        return GetProcessId(ProcessHandle);
+    }
+
 private:
     HANDLE ProcessHandle;
     HMODULE MainModule;

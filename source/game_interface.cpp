@@ -31,6 +31,16 @@ bool GameInterface::DoWrite() {
     return Memory->WriteBuffer((uint8_t*)&WriteBuffer, sizeof(WriteBuffer), WriteAddress);
 }
 
+bool GameInterface::ProcessRunning() const {
+    return Memory->ProcessRunning();
+}
+
+DWORD GameInterface::ProcessId() const {
+    return Memory->ProcessId();
+}
+
+
+
 const AOB DetourAOB("66 0F 6E C1 F3 0F E6 D2 F3 0F E6 C0 F2 41 0F 59 D0");
 const AOB GetThePlayerCallAOB("E8 ?? ?? ?? ?? 48 85 C0 74 ?? F2 0F 10 40");
 const AOB GetCameraParametersFunctionAOB("48 85 C9 74 0C F3 0F 10 05 ?? ?? ?? ?? F3 0F 11 01 48 85 D2 74 0C F3 0F 10 05 ?? ?? ?? ?? F3 0F 11 02 C3");
