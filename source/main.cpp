@@ -1,6 +1,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <Psapi.h>
+#include <hidusage.h>
 #include <fmt/format.h>
 
 #include <cwchar>
@@ -25,8 +26,14 @@ void SetupConnectTimer(HWND);
 void KillConnectTimer(HWND);
 bool ConnectToGameProcess();
 
+struct TeleportSlot {
+    float X, Y, Z, Theta, Phi;
+    bool Present = false;
+};
+
 struct UiState {
     Label XLbl, YLbl, ZLbl, ThetaLbl, PhiLbl;
+    TeleportSlot Slots[10];
 } g_UiState;
 
 extern "C" const char SegoeUiMono[];
@@ -93,6 +100,24 @@ int CALLBACK WinMain(
     g_UiState.ThetaLbl = Label::New(75, 70, 200, 20, "Theta: ??", &g_UiMonoFont);
     g_UiState.PhiLbl = Label::New(75, 90, 200, 20, "Phi: ??", &g_UiMonoFont);
 
+    RAWINPUTDEVICE RawInputDevice[2];
+
+    RawInputDevice[0].usUsagePage = HID_USAGE_PAGE_GENERIC;
+    RawInputDevice[0].usUsage = HID_USAGE_GENERIC_KEYBOARD;
+    RawInputDevice[0].dwFlags = RIDEV_INPUTSINK;
+    RawInputDevice[0].hwndTarget = g_Window;
+
+    RawInputDevice[1].usUsagePage = HID_USAGE_PAGE_GENERIC;
+    RawInputDevice[1].usUsage = HID_USAGE_GENERIC_KEYPAD;
+    RawInputDevice[1].dwFlags = RIDEV_INPUTSINK;
+    RawInputDevice[1].hwndTarget = g_Window;
+
+    auto Result = RegisterRawInputDevices(RawInputDevice, 2, sizeof(RAWINPUTDEVICE));
+    if (Result != TRUE) {
+        auto Error = GetLastError();
+        fmt::print("{} (0x{:x})\n", Error, Error);
+    }
+
     ShowWindow(g_Window, SW_SHOW);
     SetupConnectTimer(g_Window);
     SetTimer(g_Window, UI_TIMER_ID, 20, nullptr);
@@ -119,6 +144,7 @@ static LRESULT CALLBACK WndProc(HWND Window, UINT Message, WPARAM WParam, LPARAM
             } else if (WParam == UI_TIMER_ID && g_GameInterface) {
                 if (!g_GameInterface->ProcessRunning()) {
                     g_GameInterface.reset();
+                    SetWindowTextA(g_Window, "Witness Trainer");
                     SetupConnectTimer(Window);
                     break;
                 }
@@ -129,6 +155,109 @@ static LRESULT CALLBACK WndProc(HWND Window, UINT Message, WPARAM WParam, LPARAM
                 g_UiState.ThetaLbl.SetText("Theta: {:.1f}", g_GameInterface->Theta() * 57.2957795131f);
                 g_UiState.PhiLbl.SetText("Phi: {:.1f}", g_GameInterface->Phi() * 57.2957795131f);
             }
+        } break;
+        case WM_INPUT: {
+            static std::vector<uint8_t> RawInputData;
+            enum {
+                M_SHIFT = 0x01,
+                M_CTRL = 0x02,
+                M_ALT = 0x04,
+                M_WINL = 0x08,
+                M_WINR = 0x10,
+            };
+            static int ModifierState = 0;
+            UINT Size;
+
+            GetRawInputData((HRAWINPUT)LParam, RID_INPUT, nullptr, &Size, sizeof(RAWINPUTHEADER));
+            if (RawInputData.capacity() < Size) {
+                RawInputData.reserve(Size);
+            }
+            RawInputData.resize(Size);
+
+            GetRawInputData((HRAWINPUT)LParam, RID_INPUT, RawInputData.data(), &Size, sizeof(RAWINPUTHEADER));
+
+            auto Input = (RAWINPUT*) RawInputData.data();
+            assert(Input->header.dwType == RIM_TYPEKEYBOARD);
+
+            int bit = -1;
+            switch (Input->data.keyboard.VKey) {
+                case VK_SHIFT:
+                case VK_CONTROL:
+                case VK_MENU: {
+                    bit = 1 << (Input->data.keyboard.VKey - VK_SHIFT);
+                } break;
+                case VK_LWIN:
+                case VK_RWIN: {
+                    bit = 1 << (Input->data.keyboard.VKey - VK_LWIN + 3);
+                } break;
+            }
+
+            if (bit != -1) {
+                if ((Input->data.keyboard.Flags & RI_KEY_BREAK) == 0) {
+                    ModifierState |= bit;
+                } else {
+                    ModifierState &= ~bit;
+                }
+                break;
+            }
+
+            bool HasFocus = g_GameInterface->HasFocus();
+            bool WasPressed = (Input->data.keyboard.Flags & RI_KEY_BREAK) == 0;
+
+            if (!HasFocus || !WasPressed) {
+                break;
+            }
+
+            switch (Input->data.keyboard.VKey) {
+                case VK_F1:
+                case VK_F2:
+                case VK_F3:
+                case VK_F4:
+                case VK_F5:
+                case VK_F6:
+                case VK_F7:
+                case VK_F8:
+                case VK_F9: {
+                    int SlotId = Input->data.keyboard.VKey - VK_F1;
+
+                    if (ModifierState == M_SHIFT) {
+                        if (SlotId == 8) {
+                            return 0;
+                        }
+                        g_GameInterface->DoRead();
+                        g_UiState.Slots[SlotId].X = g_GameInterface->X();
+                        g_UiState.Slots[SlotId].Y = g_GameInterface->Y();
+                        g_UiState.Slots[SlotId].Z = g_GameInterface->Z();
+                        g_UiState.Slots[SlotId].Theta = g_GameInterface->Theta();
+                        g_UiState.Slots[SlotId].Phi = g_GameInterface->Phi();
+                        g_UiState.Slots[SlotId].Present = true;
+
+                    } else if (ModifierState == 0) {
+                        if (!g_UiState.Slots[SlotId].Present) {
+                            break;
+                        }
+                        TeleportSlot Backup = {};
+
+                        g_GameInterface->DoRead();
+                        Backup.X = g_GameInterface->X();
+                        Backup.Y = g_GameInterface->Y();
+                        Backup.Z = g_GameInterface->Z();
+                        Backup.Theta = g_GameInterface->Theta();
+                        Backup.Phi = g_GameInterface->Phi();
+                        Backup.Present = true;
+
+                        g_GameInterface->WriteX(g_UiState.Slots[SlotId].X);
+                        g_GameInterface->WriteY(g_UiState.Slots[SlotId].Y);
+                        g_GameInterface->WriteZ(g_UiState.Slots[SlotId].Z);
+                        g_GameInterface->WriteTheta(g_UiState.Slots[SlotId].Theta);
+                        g_GameInterface->WritePhi(g_UiState.Slots[SlotId].Phi);
+                        g_GameInterface->DoWrite();
+
+                        g_UiState.Slots[8] = Backup;
+                    }
+                } break;
+            }
+            return 0;
         } break;
         default: {
             return DefWindowProcW(Window, Message, WParam, LParam);

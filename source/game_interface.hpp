@@ -37,6 +37,7 @@ public:
 
     bool ProcessRunning() const;
     DWORD ProcessId() const;
+    bool HasFocus() const;
 
 private:
     std::unique_ptr<ForeignProcessMemory> Memory;

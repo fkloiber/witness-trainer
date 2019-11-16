@@ -71,6 +71,13 @@ public:
         return GetProcessId(ProcessHandle);
     }
 
+    bool HasFocus() const {
+        HWND ForegroundWindow = GetForegroundWindow();
+        DWORD ForegroundProcessId;
+        GetWindowThreadProcessId(ForegroundWindow, &ForegroundProcessId);
+        return ProcessId() == ForegroundProcessId;
+    }
+
 private:
     HANDLE ProcessHandle;
     HMODULE MainModule;

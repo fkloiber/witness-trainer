@@ -39,6 +39,10 @@ DWORD GameInterface::ProcessId() const {
     return Memory->ProcessId();
 }
 
+bool GameInterface::HasFocus() const {
+    return Memory->HasFocus();
+}
+
 
 
 const AOB DetourAOB("66 0F 6E C1 F3 0F E6 D2 F3 0F E6 C0 F2 41 0F 59 D0");
