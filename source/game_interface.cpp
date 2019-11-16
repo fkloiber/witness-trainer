@@ -67,37 +67,37 @@ const static uint8_t DetourFragmentTemplate[] = { // 0xcc bytes are uninitialize
     0x89,0x5f,0xcc,                          // mov    DWORD PTR [rdi+0x??],ebx
     0x89,0x4f,0xcc,                          // mov    DWORD PTR [rdi+0x??],ecx
     0x48,0x8b,0x3d,0x96,0x00,0x00,0x00,      // mov    rdi,QWORD PTR [rip+0x96]        # <Write>
-    0x48,0x31,0xc0,                          // xor    rax,rax
+    0x48,0x31,0xd2,                          // xor    rdx,rdx
     0x80,0x7f,0xcc,0x00,                     // cmp    BYTE PTR [rdi+0x??],0x0
-    0x88,0x47,0xcc,                          // mov    BYTE PTR [rdi+0x??],al
+    0x88,0x57,0xcc,                          // mov    BYTE PTR [rdi+0x??],dl
     0x74,0x57,                               // je     <Exit>
     0x80,0x7f,0xcc,0x00,                     // cmp    BYTE PTR [rdi+0x??],0x0
-    0x88,0x47,0xcc,                          // mov    BYTE PTR [rdi+0x??],al
+    0x88,0x57,0xcc,                          // mov    BYTE PTR [rdi+0x??],dl
     0x74,0x06,                               // je     <SkipX>
     0x8b,0x5f,0xcc,                          // mov    ebx,DWORD PTR [rdi+0x??]
     0x89,0x58,0xcc,                          // mov    DWORD PTR [rax+0x??],ebx
     // <SkipX>:
     0x80,0x7f,0xcc,0x00,                     // cmp    BYTE PTR [rdi+0x??],0x0
-    0x88,0x47,0xcc,                          // mov    BYTE PTR [rdi+0x??],al
+    0x88,0x57,0xcc,                          // mov    BYTE PTR [rdi+0x??],dl
     0x74,0x06,                               // je     <SkipY>
     0x8b,0x5f,0xcc,                          // mov    ebx,DWORD PTR [rdi+0x??]
     0x89,0x58,0xcc,                          // mov    DWORD PTR [rax+0x??],ebx
     // <SkipY>:
     0x80,0x7f,0xcc,0x00,                     // cmp    BYTE PTR [rdi+0x??],0x0
-    0x88,0x47,0xcc,                          // mov    BYTE PTR [rdi+0x??],al
+    0x88,0x57,0xcc,                          // mov    BYTE PTR [rdi+0x??],dl
     0x74,0x06,                               // je     <SkipZ>
     0x8b,0x5f,0xcc,                          // mov    ebx,DWORD PTR [rdi+0x??]
     0x89,0x58,0xcc,                          // mov    DWORD PTR [rax+0x??],ebx
     // <SkipZ>:
     0x80,0x7f,0xcc,0x00,                     // cmp    BYTE PTR [rdi+0x??],0x0
-    0x88,0x47,0xcc,                          // mov    BYTE PTR [rdi+0x??],al
+    0x88,0x57,0xcc,                          // mov    BYTE PTR [rdi+0x??],dl
     0x74,0x0c,                               // je     <SkipTheta>
-    0x48,0x8b,0x1d,0x35,0x00,0x00,0x00,      // mov    rbx,QWORD PTR [rip+0x35]        # <Theta>
+    0x48,0x8b,0x0d,0x35,0x00,0x00,0x00,      // mov    rcx,QWORD PTR [rip+0x35]        # <Theta>
     0x8b,0x5f,0xcc,                          // mov    ebx,DWORD PTR [rdi+0x??]
-    0x89,0x1b,                               // mov    DWORD PTR [rbx],ebx
+    0x89,0x19,                               // mov    DWORD PTR [rcx],ebx
     // <SkipTheta>:
     0x80,0x7f,0xcc,0x00,                     // cmp    BYTE PTR [rdi+0x??],0x0
-    0x88,0x47,0xcc,                          // mov    BYTE PTR [rdi+0x??],al
+    0x88,0x57,0xcc,                          // mov    BYTE PTR [rdi+0x??],dl
     0x74,0x0c,                               // je     <Exit>
     0x48,0x8b,0x0d,0x28,0x00,0x00,0x00,      // mov    rcx,QWORD PTR [rip+0x28]        # <Phi>
     0x8b,0x5f,0xcc,                          // mov    ebx,DWORD PTR [rdi+0x??]
@@ -175,7 +175,7 @@ std::unique_ptr<GameInterface> GameInterface::New() {
     Data[0x3e] = OFFSETOF(ReadData, Phi);
     Data[0x4b] = OFFSETOF(WriteData, WriteAny);
     Data[0x4f] = OFFSETOF(WriteData, WriteAny);
-    Data[0x52] = OFFSETOF(WriteData, WriteX);
+    Data[0x54] = OFFSETOF(WriteData, WriteX);
     Data[0x58] = OFFSETOF(WriteData, WriteX);
     Data[0x5d] = OFFSETOF(WriteData, X);
     Data[0x60] = XPositionOffset + 0;
