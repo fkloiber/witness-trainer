@@ -26,7 +26,7 @@ void KillConnectTimer(HWND);
 bool ConnectToGameProcess();
 
 struct UiState {
-    Label XLbl, YLbl, ZLbl;
+    Label XLbl, YLbl, ZLbl, ThetaLbl, PhiLbl;
 } g_UiState;
 
 extern "C" const char SegoeUiMono[];
@@ -90,6 +90,8 @@ int CALLBACK WinMain(
     g_UiState.XLbl = Label::New(75, 10, 200, 20, "X: ??", &g_UiMonoFont);
     g_UiState.YLbl = Label::New(75, 30, 200, 20, "Y: ??", &g_UiMonoFont);
     g_UiState.ZLbl = Label::New(75, 50, 200, 20, "Z: ??", &g_UiMonoFont);
+    g_UiState.ThetaLbl = Label::New(75, 70, 200, 20, "Theta: ??", &g_UiMonoFont);
+    g_UiState.PhiLbl = Label::New(75, 90, 200, 20, "Phi: ??", &g_UiMonoFont);
 
     ShowWindow(g_Window, SW_SHOW);
     SetupConnectTimer(g_Window);
@@ -124,6 +126,8 @@ static LRESULT CALLBACK WndProc(HWND Window, UINT Message, WPARAM WParam, LPARAM
                 g_UiState.XLbl.SetText("X: {: = 6.1f}", g_GameInterface->X());
                 g_UiState.YLbl.SetText("Y: {: = 6.1f}", g_GameInterface->Y());
                 g_UiState.ZLbl.SetText("Z: {: = 6.1f}", g_GameInterface->Z());
+                g_UiState.ThetaLbl.SetText("Theta: {:.1f}", g_GameInterface->Theta() * 57.2957795131f);
+                g_UiState.PhiLbl.SetText("Phi: {:.1f}", g_GameInterface->Phi() * 57.2957795131f);
             }
         } break;
         default: {
